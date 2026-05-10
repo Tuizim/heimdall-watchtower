@@ -88,83 +88,63 @@ export default function Battalion() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
                 key={warrior.id}
-                className="viking-card group relative overflow-hidden"
+                className="viking-card group relative overflow-hidden flex flex-col"
               >
-                {/* Background Decor */}
-                <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity rotate-12 group-hover:rotate-0 transition-all duration-700">
-                   <Shield size={180} />
+                <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.07] transition-all duration-700 rotate-12 group-hover:rotate-0">
+                  <Shield size={180} />
                 </div>
-                
-                {index === 0 && (
-                  <div className="absolute top-4 right-4 bg-viking-gold text-black px-3 py-1 rounded-full font-black text-[10px] uppercase tracking-widest shadow-xl z-10 animate-bounce">
-                    Rei do Reino
-                  </div>
-                )}
 
-                <div className="p-8 relative z-10">
-                  <div className="flex flex-col items-center text-center mb-8">
-                    <div className="relative mb-6">
-                      <div className={`w-32 h-32 rounded-[2.5rem] border-4 overflow-hidden bg-viking-stone ring-8 shadow-2xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 ${
-                        index === 0 ? 'border-viking-gold ring-viking-gold/10' : 
-                        index === 1 ? 'border-slate-300 ring-slate-300/10' :
-                        index === 2 ? 'border-amber-700 ring-amber-700/10' :
-                        'border-viking-blue ring-viking-blue/5'
-                      }`}>
-                        <img 
-                          src={warrior.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${warrior.nome}`} 
-                          alt={warrior.nome} 
+                <div className="p-6 relative z-10 flex-1">
+                  <div className="flex flex-col items-center text-center mb-6">
+                    <div className="relative mb-4">
+                      <div className="w-24 h-24 rounded-4xl border-4 border-viking-blue overflow-hidden bg-viking-stone ring-8 ring-viking-blue/5 shadow-2xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-3">
+                        <img
+                          src={warrior.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${warrior.nome}`}
+                          alt={warrior.nome}
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      
-                      {/* Rank Badge */}
-                      <div className={`absolute -top-3 -left-3 w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xl shadow-2xl border-2 transform -rotate-12 group-hover:rotate-0 transition-transform ${
-                        index === 0 ? 'bg-viking-gold border-white/20 text-black' :
-                        index === 1 ? 'bg-slate-300 border-white/20 text-black' :
-                        index === 2 ? 'bg-amber-700 border-white/20 text-white' :
-                        'bg-viking-stone border-white/10 text-slate-400'
-                      }`}>
+
+                      <div className="absolute -top-3 -left-3 w-9 h-9 rounded-xl bg-viking-stone border border-white/10 text-slate-400 flex items-center justify-center font-black text-lg shadow-2xl transform -rotate-12 group-hover:rotate-0 transition-transform">
                         {index + 1}
                       </div>
 
-                      <div className={`absolute -bottom-2 -right-2 rounded-xl p-2.5 border-2 border-viking-stone shadow-lg group-hover:rotate-12 transition-transform ${
-                        index === 0 ? 'bg-viking-gold text-black' : 'bg-viking-blue text-white'
-                      }`}>
-                        <Sword size={20} fill="currentColor" />
+                      <div className="absolute -bottom-2 -right-2 rounded-xl p-2 bg-viking-blue border-2 border-viking-stone text-white shadow-lg group-hover:rotate-12 transition-transform">
+                        <Sword size={16} fill="currentColor" />
                       </div>
                     </div>
-                    
+
                     <div className="space-y-1">
                       <span className="text-[10px] text-viking-blue font-black uppercase tracking-[0.3em]">{warrior.papel || warrior.classe_viking}</span>
-                      <h3 className="text-3xl font-black text-white italic tracking-tighter leading-tight uppercase group-hover:text-viking-gold transition-colors">{warrior.nome}</h3>
+                      <h3 className="text-2xl font-black text-white italic tracking-tighter leading-tight uppercase group-hover:text-viking-gold transition-colors">{warrior.nome}</h3>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 mb-8">
-                    <div className="bg-black/40 backdrop-blur-sm rounded-2xl p-5 border border-white/5 group-hover:border-viking-gold/20 transition-colors">
+                  <div className="grid grid-cols-2 gap-3 mb-6">
+                    <div className="bg-black/40 rounded-xl p-4 border border-white/5 group-hover:border-viking-gold/20 transition-colors">
                       <div className="flex items-center gap-2 mb-2">
-                        <Award size={14} className="text-viking-gold" />
-                        <span className="text-[10px] text-slate-500 uppercase font-black tracking-widest block">Glória</span>
+                        <Award size={12} className="text-viking-gold" />
+                        <span className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Glória</span>
                       </div>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-black text-white">{stats.totalPoints}</span>
+                        <span className="text-2xl font-black text-white">{stats.totalPoints}</span>
                         <span className="text-[10px] font-bold text-viking-gold">pts</span>
                       </div>
                     </div>
-                    
-                    <div className="bg-black/40 backdrop-blur-sm rounded-2xl p-5 border border-white/5 group-hover:border-viking-blue/20 transition-colors">
+
+                    <div className="bg-black/40 rounded-xl p-4 border border-white/5 group-hover:border-viking-blue/20 transition-colors">
                       <div className="flex items-center gap-2 mb-2">
-                        <Target size={14} className="text-viking-blue" />
-                        <span className="text-[10px] text-slate-500 uppercase font-black tracking-widest block">Missões</span>
+                        <Target size={12} className="text-viking-blue" />
+                        <span className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Missões</span>
                       </div>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-black text-white">{stats.completedMissions}</span>
+                        <span className="text-2xl font-black text-white">{stats.completedMissions}</span>
                         <span className="text-[10px] font-bold text-viking-blue">mng</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between px-2">
+                  <div className="flex items-center justify-between px-1">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nível {Math.floor(stats.totalPoints / 50) + 1}</span>
@@ -174,14 +154,13 @@ export default function Battalion() {
                     </span>
                   </div>
                 </div>
-                
-                {/* Level Progress Bar */}
+
                 <div className="h-1.5 w-full bg-black/60 relative">
-                   <motion.div 
-                     initial={{ width: 0 }}
-                     animate={{ width: `${Math.min(100, (stats.totalPoints % 50) * 2)}%` }}
-                     className="absolute h-full bg-gradient-to-r from-viking-blue to-cyan-400 shadow-[0_0_15px_rgba(0,209,255,0.3)]"
-                   />
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(100, (stats.totalPoints % 50) * 2)}%` }}
+                    className="absolute h-full bg-linear-to-r from-viking-blue to-cyan-400 shadow-[0_0_15px_rgba(0,209,255,0.3)]"
+                  />
                 </div>
               </motion.div>
             );
