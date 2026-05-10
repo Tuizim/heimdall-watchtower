@@ -17,5 +17,6 @@
     "jsx": "react-jsx",
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "exclude": ["supabase/functions"]
 }

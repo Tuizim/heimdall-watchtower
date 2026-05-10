@@ -16,6 +16,9 @@ CREATE TABLE profiles (
 -- Migration: adicionar coluna papel a tabelas existentes
 -- ALTER TABLE profiles ADD COLUMN IF NOT EXISTS papel TEXT DEFAULT 'Desenvolvedor';
 
+-- Migration: adicionar coluna login (username único para autenticação admin)
+-- ALTER TABLE profiles ADD COLUMN IF NOT EXISTS login TEXT UNIQUE;
+
 -- 2. Tasks (Missions) Table
 CREATE TABLE tasks (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,

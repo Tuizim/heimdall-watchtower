@@ -5,8 +5,6 @@ import { Profile, PAPEIS_DESENVOLVIMENTO } from './types';
 import {
   LayoutDashboard,
   GitBranch,
-  History,
-  Trophy,
   Shield,
   LogOut,
   Menu,
@@ -18,6 +16,7 @@ import {
   Camera,
   Upload,
   Users,
+  UserPlus,
   Code2,
   Crown,
   Zap,
@@ -25,6 +24,9 @@ import {
   Server,
   Palette,
   Briefcase,
+  Lock,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Dashboard from './pages/Dashboard';
@@ -32,6 +34,7 @@ import Deliveries from './pages/Deliveries';
 import Branches from './pages/Branches';
 import Retro from './pages/Retro';
 import Battalion from './pages/Battalion';
+import AdminUsers from './pages/AdminUsers';
 import Login from './pages/Login';
 
 const PAPEL_CONFIG: Record<string, { icon: React.ComponentType<{ size?: number; className?: string }>; selected: string; idle: string }> = {
@@ -137,6 +140,11 @@ function AppLayout({ children }: { children: React.ReactNode }) {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [editingProfile, setEditingProfile] = useState<Partial<Profile>>({});
   const [isUploading, setIsUploading] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -194,12 +202,32 @@ function AppLayout({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (user?.id === 'guest') return;
+    setPasswordError(null);
+    setPasswordSuccess(false);
+
+    if (newPassword !== confirmPassword) { setPasswordError('As senhas não coincidem'); return; }
+    if (newPassword.length < 6) { setPasswordError('Mínimo de 6 caracteres'); return; }
+
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) {
+      setPasswordError(error.message);
+    } else {
+      setPasswordSuccess(true);
+      setNewPassword('');
+      setConfirmPassword('');
+    }
+  };
+
   const navItems = [
     { icon: LayoutDashboard, label: 'Salão de Odin', path: '/' },
     { icon: Users, label: 'Batalhão', path: '/battalion' },
     { icon: Sword, label: 'Painel de Entregas', path: '/deliveries' },
     { icon: GitBranch, label: 'Branches do Reino', path: '/branches' },
     { icon: ScrollText, label: 'Pergaminhos', path: '/retro' },
+    ...(profile?.role === 'admin' ? [{ icon: UserPlus, label: 'Forja de Guerreiros', path: '/admin/users' }] : []),
   ];
 
   return (
@@ -439,14 +467,14 @@ function AppLayout({ children }: { children: React.ReactNode }) {
                 </div>
 
                 <div className="flex gap-4 pt-6 border-t border-white/5">
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setIsProfileModalOpen(false)}
                     className="flex-1 py-4 glass rounded-xl font-bold uppercase text-[10px] tracking-widest hover:bg-white/5 transition-all text-slate-400"
                   >
                     Recuar
                   </button>
-                  <button 
+                  <button
                     type="submit"
                     className="flex-1 py-4 bg-viking-gold text-black font-black rounded-xl uppercase text-[10px] tracking-widest hover:scale-105 transition-all shadow-lg shadow-viking-gold/20"
                   >
@@ -454,6 +482,48 @@ function AppLayout({ children }: { children: React.ReactNode }) {
                   </button>
                 </div>
               </form>
+
+              {/* Password Change */}
+              <div className="mt-6 pt-6 border-t border-white/5">
+                <h4 className="text-[10px] uppercase font-black tracking-widest text-slate-500 mb-4 flex items-center gap-2">
+                  <Lock size={12} />
+                  Trocar Senha
+                </h4>
+                <form onSubmit={handleChangePassword} className="space-y-3">
+                  <div className="relative">
+                    <input
+                      type={showNewPassword ? 'text' : 'password'}
+                      value={newPassword}
+                      onChange={e => setNewPassword(e.target.value)}
+                      placeholder="Nova senha (mín. 6 caracteres)"
+                      className="w-full bg-black/40 border border-white/10 rounded-xl p-3.5 pr-12 focus:border-viking-blue outline-none transition-all text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(v => !v)}
+                      className="absolute right-3 top-3.5 text-slate-500 hover:text-white transition-colors"
+                    >
+                      {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    placeholder="Confirmar nova senha"
+                    className="w-full bg-black/40 border border-white/10 rounded-xl p-3.5 focus:border-viking-blue outline-none transition-all text-sm"
+                  />
+                  {passwordError && <p className="text-rose-400 text-xs">{passwordError}</p>}
+                  {passwordSuccess && <p className="text-emerald-400 text-xs">Senha atualizada com sucesso!</p>}
+                  <button
+                    type="submit"
+                    disabled={!newPassword || !confirmPassword}
+                    className="w-full py-3 bg-viking-blue/10 border border-viking-blue/30 text-viking-blue font-black rounded-xl uppercase text-[10px] tracking-widest hover:bg-viking-blue/20 transition-all disabled:opacity-30"
+                  >
+                    Forjar Nova Senha
+                  </button>
+                </form>
+              </div>
             </motion.div>
           </div>
         )}
@@ -499,6 +569,7 @@ function AuthConsumer() {
               <Route path="/deliveries" element={<Deliveries />} />
               <Route path="/branches" element={<Branches />} />
               <Route path="/retro" element={<Retro />} />
+              <Route path="/admin/users" element={<AdminUsers />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
           </AppLayout>

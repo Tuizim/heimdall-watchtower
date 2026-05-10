@@ -32,6 +32,7 @@ export interface Profile {
   id: string;
   nome: string;
   email: string;
+  login?: string;
   avatar_url?: string;
   classe_viking: VikingClass;
   papel: PapelDesenvolvimento;
