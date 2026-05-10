@@ -33,11 +33,11 @@ jobs:
           mkdir -p $HOME/.ssh
           echo "${{ secrets.SSH_KEY }}" > $HOME/.ssh/deploy_key
           chmod 600 $HOME/.ssh/deploy_key
-          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> $HOME/.ssh/known_hosts
+          echo "StrictHostKeyChecking no" >> $HOME/.ssh/config
 
       - name: Deploy via rsync
         run: |
           rsync -avzr --delete \
-            -e "ssh -i $HOME/.ssh/deploy_key -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no" \
+            -e "ssh -i $HOME/.ssh/deploy_key -p ${{ secrets.SSH_PORT }}" \
             dist/ \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/var/www/watchtower/
