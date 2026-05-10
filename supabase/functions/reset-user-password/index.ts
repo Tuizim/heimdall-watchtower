@@ -36,39 +36,16 @@ Deno.serve(async (req) => {
       return json({ error: "Acesso negado — apenas Jarls" }, 403);
     }
 
-    const { nome, login, senha, papel, classe_viking, avatar_url } = await req.json();
-
-    if (!nome || !login || !senha) {
-      return json({ error: "Nome, login e senha são obrigatórios" }, 400);
-    }
-
-    const loginClean = login.trim().toLowerCase().replace(/\s+/g, "");
-    const email = `${loginClean}@heimdall.local`;
+    const { userId, password } = await req.json();
+    if (!userId || !password) return json({ error: "userId e password são obrigatórios" }, 400);
+    if (password.length < 6) return json({ error: "Senha deve ter no mínimo 6 caracteres" }, 400);
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data, error: createError } = await adminClient.auth.admin.createUser({
-      email,
-      password: senha,
-      email_confirm: true,
-      user_metadata: { full_name: nome },
-    });
+    const { error: updateError } = await adminClient.auth.admin.updateUserById(userId, { password });
+    if (updateError) return json({ error: updateError.message }, 400);
 
-    if (createError) return json({ error: createError.message }, 400);
-
-    await adminClient.from("profiles").insert({
-      id: data.user.id,
-      nome,
-      email,
-      login: loginClean,
-      avatar_url: avatar_url || null,
-      papel: papel || "Desenvolvedor",
-      classe_viking: classe_viking || "Recruta",
-      role: "user",
-      xp: 0,
-    });
-
-    return json({ success: true, user: { id: data.user.id, login: loginClean, nome } });
+    return json({ success: true });
   } catch (err) {
     return json({ error: String(err) }, 500);
   }

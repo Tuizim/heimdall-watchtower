@@ -37,7 +37,7 @@ import Battalion from './pages/Battalion';
 import AdminUsers from './pages/AdminUsers';
 import Login from './pages/Login';
 
-const PAPEL_CONFIG: Record<string, { icon: React.ComponentType<{ size?: number; className?: string }>; selected: string; idle: string }> = {
+export const PAPEL_CONFIG: Record<string, { icon: React.ComponentType<{ size?: number; className?: string }>; selected: string; idle: string }> = {
   'Desenvolvedor':  { icon: Code2,        selected: 'border-cyan-400 bg-cyan-400/10 text-cyan-300',        idle: 'border-white/10 bg-black/30 text-slate-400 hover:border-cyan-400/40 hover:text-cyan-300' },
   'Líder Técnico':  { icon: Crown,        selected: 'border-viking-gold bg-viking-gold/10 text-viking-gold', idle: 'border-white/10 bg-black/30 text-slate-400 hover:border-viking-gold/40 hover:text-viking-gold' },
   'Agilista':       { icon: Zap,          selected: 'border-purple-400 bg-purple-400/10 text-purple-300',   idle: 'border-white/10 bg-black/30 text-slate-400 hover:border-purple-400/40 hover:text-purple-300' },
