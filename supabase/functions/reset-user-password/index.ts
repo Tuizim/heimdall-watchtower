@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
 
     const { userId, password } = await req.json();
     if (!userId || !password) return json({ error: "userId e password são obrigatórios" }, 400);
-    if (password.length < 6) return json({ error: "Senha deve ter no mínimo 6 caracteres" }, 400);
+    if (password.length < 12) return json({ error: "Senha deve ter no mínimo 12 caracteres" }, 400);
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 

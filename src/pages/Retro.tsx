@@ -185,11 +185,12 @@ export default function Retro() {
               <form onSubmit={handleCreateCard} className="space-y-8">
                 <div className="space-y-2">
                   <label className="text-[10px] uppercase font-black tracking-widest text-slate-500">O que devemos lembrar?</label>
-                  <input 
+                  <input
                     required
                     value={newCard.titulo}
                     onChange={e => setNewCard({...newCard, titulo: e.target.value})}
-                    type="text" 
+                    type="text"
+                    maxLength={255}
                     className="w-full bg-black/60 border border-white/10 rounded-xl p-5 focus:border-viking-blue outline-none transition-all placeholder:text-slate-700 font-bold"
                     placeholder="Título da nota..."
                   />
@@ -197,10 +198,11 @@ export default function Retro() {
 
                 <div className="space-y-2">
                   <label className="text-[10px] uppercase font-black tracking-widest text-slate-500">Conte na Saga (Detalhes)</label>
-                  <textarea 
+                  <textarea
                     value={newCard.descricao}
                     onChange={e => setNewCard({...newCard, descricao: e.target.value})}
                     rows={4}
+                    maxLength={1000}
                     className="w-full bg-black/60 border border-white/10 rounded-xl p-5 focus:border-viking-blue outline-none transition-all placeholder:text-slate-700 font-medium resize-none"
                     placeholder="Descreva a memória épica aqui..."
                   />

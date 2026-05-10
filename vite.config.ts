@@ -4,7 +4,9 @@ import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, '.', '');
+  // Prefix 'VITE_' ensures only frontend-safe variables are loaded.
+  // Never use prefix '' — it loads ALL .env vars including server secrets.
+  const env = loadEnv(mode, '.', 'VITE_');
   return {
     plugins: [react(), tailwindcss()],
     define: {

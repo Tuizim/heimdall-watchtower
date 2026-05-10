@@ -1,5 +1,7 @@
 import "dotenv/config";
 import express from "express";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 
@@ -7,22 +9,61 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json());
+  const isDev = process.env.NODE_ENV !== "production";
+
+  // Security headers — CSP disabled in dev so Vite HMR (websockets + inline scripts) funciona
+  app.use(
+    helmet({
+      contentSecurityPolicy: isDev ? false : {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", "data:", "https:"],
+          connectSrc: ["'self'", "https://*.supabase.co", "wss://*.supabase.co"],
+          fontSrc: ["'self'"],
+          objectSrc: ["'none'"],
+          frameAncestors: ["'none'"],
+        },
+      },
+      crossOriginEmbedderPolicy: isDev ? false : true,
+    })
+  );
+
+  // Body limit — prevent oversized payload attacks
+  app.use(express.json({ limit: "50kb" }));
+
+  // Rate limiting on all API routes: 100 req / 15 min per IP
+  app.use(
+    "/api",
+    rateLimit({
+      windowMs: 15 * 60 * 1000,
+      max: 100,
+      standardHeaders: true,
+      legacyHeaders: false,
+      message: { error: "Muitas requisições. Tente novamente em 15 minutos." },
+    })
+  );
+
+  // Stricter limit on login attempts: 10 req / 15 min per IP
+  app.use(
+    "/api/auth",
+    rateLimit({
+      windowMs: 15 * 60 * 1000,
+      max: 10,
+      standardHeaders: true,
+      legacyHeaders: false,
+      message: { error: "Muitas tentativas de login. Tente novamente em 15 minutos." },
+    })
+  );
 
   // API Routes
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", message: "Heimdall Watchtower is active" });
   });
 
-  app.get("/api/config", (req, res) => {
-    res.json({
-      supabaseUrl: process.env.VITE_SUPABASE_URL,
-      supabaseAnonKey: process.env.VITE_SUPABASE_ANON_KEY,
-    });
-  });
-
   // Callback for OAuth popups
-  app.get(['/auth/callback', '/auth/callback/'], (req, res) => {
+  app.get(["/auth/callback", "/auth/callback/"], (req, res) => {
     res.send(`
       <html>
         <body style="background: #05070a; color: #b89149; display: flex; items-center; justify-content: center; height: 100vh; font-family: sans-serif;">
@@ -40,17 +81,6 @@ async function startServer() {
           </div>
         </body>
       </html>
-    `);
-  });
-
-  // Novo endpoint para injeção via script tag (mais robusto contra bloqueios de build)
-  app.get("/supabase-config.js", (req, res) => {
-    res.type("application/javascript");
-    res.send(`
-      window.__SUPABASE_CONFIG__ = {
-        url: ${JSON.stringify(process.env.VITE_SUPABASE_URL || '')},
-        key: ${JSON.stringify(process.env.VITE_SUPABASE_ANON_KEY || '')}
-      };
     `);
   });
 

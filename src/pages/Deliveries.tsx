@@ -373,11 +373,12 @@ export default function Deliveries() {
               <form onSubmit={handleCreateTask} className="space-y-8">
                 <div className="space-y-2">
                   <label className="text-[10px] uppercase font-black tracking-widest text-slate-500">Objetivo da Missão</label>
-                  <input 
+                  <input
                     required
                     value={newTask.titulo}
                     onChange={e => setNewTask({...newTask, titulo: e.target.value})}
-                    type="text" 
+                    type="text"
+                    maxLength={255}
                     className="w-full bg-black/40 border border-white/10 rounded-xl p-5 focus:border-viking-gold outline-none transition-all placeholder:text-slate-700 font-bold"
                     placeholder="Ex: Saquear servidor legacy"
                   />
@@ -385,10 +386,11 @@ export default function Deliveries() {
 
                 <div className="space-y-2">
                   <label className="text-[10px] uppercase font-black tracking-widest text-slate-500">Relato da Jornada</label>
-                  <textarea 
+                  <textarea
                     value={newTask.descricao}
                     onChange={e => setNewTask({...newTask, descricao: e.target.value})}
                     rows={4}
+                    maxLength={1000}
                     className="w-full bg-black/40 border border-white/10 rounded-xl p-5 focus:border-viking-gold outline-none transition-all placeholder:text-slate-700 font-medium"
                     placeholder="O que os deuses devem saber sobre esta missão?"
                   />

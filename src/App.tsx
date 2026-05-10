@@ -77,22 +77,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    // Check if we should auto-login as guest for preview purposes
-    const config = (window as any).__SUPABASE_CONFIG__;
-    if (!config?.url || config.url.includes('missing-url')) {
-      console.log("Modo Visitante Ativado automaticamente (Sem chaves do Supabase)");
-      setProfile({
-        id: 'guest',
-        nome: 'Visitante Valhalla',
-        email: 'guest@valhalla.com',
-        classe_viking: 'Seer Frontend',
-        papel: 'Desenvolvedor',
-        role: 'user',
-        xp: 0,
-        created_at: new Date().toISOString()
-      });
-      setUser({ id: 'guest', email: 'guest@valhalla.com' });
-      setLoading(false);
+    // Guest mode only in local development — never in production builds
+    if (import.meta.env.DEV) {
+      const config = (window as any).__SUPABASE_CONFIG__;
+      if (!config?.url || config.url.includes('missing-url')) {
+        console.log("Modo Visitante Ativado automaticamente (Sem chaves do Supabase)");
+        setProfile({
+          id: 'guest',
+          nome: 'Visitante Valhalla',
+          email: 'guest@valhalla.com',
+          classe_viking: 'Seer Frontend',
+          papel: 'Desenvolvedor',
+          role: 'user',
+          xp: 0,
+          created_at: new Date().toISOString()
+        });
+        setUser({ id: 'guest', email: 'guest@valhalla.com' });
+        setLoading(false);
+      }
     }
 
     return () => subscription.unsubscribe();
@@ -209,7 +211,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
     setPasswordSuccess(false);
 
     if (newPassword !== confirmPassword) { setPasswordError('As senhas não coincidem'); return; }
-    if (newPassword.length < 6) { setPasswordError('Mínimo de 6 caracteres'); return; }
+    if (newPassword.length < 12) { setPasswordError('Mínimo de 12 caracteres'); return; }
 
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) {

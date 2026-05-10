@@ -44,6 +44,9 @@ Deno.serve(async (req) => {
     if (!nome || !login || !senha) {
       return json({ error: "Nome, login e senha são obrigatórios" }, 400);
     }
+    if (senha.length < 12) {
+      return json({ error: "Senha deve ter no mínimo 12 caracteres" }, 400);
+    }
 
     const loginClean = login.trim().toLowerCase().replace(/\s+/g, "");
     const email = `${loginClean}@heimdall.local`;
