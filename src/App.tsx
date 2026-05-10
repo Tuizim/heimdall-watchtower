@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import { supabase } from './lib/supabase';
-import { Profile } from './types';
-import { 
-  LayoutDashboard, 
-  GitBranch, 
-  History, 
-  Trophy, 
-  Shield, 
-  LogOut, 
-  Menu, 
+import { Profile, PAPEIS_DESENVOLVIMENTO } from './types';
+import {
+  LayoutDashboard,
+  GitBranch,
+  History,
+  Trophy,
+  Shield,
+  LogOut,
+  Menu,
   X,
   User as UserIcon,
   Sword,
@@ -17,7 +17,14 @@ import {
   Settings,
   Camera,
   Upload,
-  Users
+  Users,
+  Code2,
+  Crown,
+  Zap,
+  FlaskConical,
+  Server,
+  Palette,
+  Briefcase,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Dashboard from './pages/Dashboard';
@@ -26,6 +33,16 @@ import Branches from './pages/Branches';
 import Retro from './pages/Retro';
 import Battalion from './pages/Battalion';
 import Login from './pages/Login';
+
+const PAPEL_CONFIG: Record<string, { icon: React.ComponentType<{ size?: number; className?: string }>; selected: string; idle: string }> = {
+  'Desenvolvedor':  { icon: Code2,        selected: 'border-cyan-400 bg-cyan-400/10 text-cyan-300',        idle: 'border-white/10 bg-black/30 text-slate-400 hover:border-cyan-400/40 hover:text-cyan-300' },
+  'Líder Técnico':  { icon: Crown,        selected: 'border-viking-gold bg-viking-gold/10 text-viking-gold', idle: 'border-white/10 bg-black/30 text-slate-400 hover:border-viking-gold/40 hover:text-viking-gold' },
+  'Agilista':       { icon: Zap,          selected: 'border-purple-400 bg-purple-400/10 text-purple-300',   idle: 'border-white/10 bg-black/30 text-slate-400 hover:border-purple-400/40 hover:text-purple-300' },
+  'QA':             { icon: FlaskConical, selected: 'border-emerald-400 bg-emerald-400/10 text-emerald-300', idle: 'border-white/10 bg-black/30 text-slate-400 hover:border-emerald-400/40 hover:text-emerald-300' },
+  'DevOps':         { icon: Server,       selected: 'border-orange-400 bg-orange-400/10 text-orange-300',   idle: 'border-white/10 bg-black/30 text-slate-400 hover:border-orange-400/40 hover:text-orange-300' },
+  'Designer':       { icon: Palette,      selected: 'border-pink-400 bg-pink-400/10 text-pink-300',         idle: 'border-white/10 bg-black/30 text-slate-400 hover:border-pink-400/40 hover:text-pink-300' },
+  'Product Owner':  { icon: Briefcase,    selected: 'border-rose-400 bg-rose-400/10 text-rose-300',         idle: 'border-white/10 bg-black/30 text-slate-400 hover:border-rose-400/40 hover:text-rose-300' },
+};
 
 // --- AUTH CONTEXT & PROVIDER ---
 export const AuthContext = React.createContext<{
@@ -66,6 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         nome: 'Visitante Valhalla',
         email: 'guest@valhalla.com',
         classe_viking: 'Seer Frontend',
+        papel: 'Desenvolvedor',
         role: 'user',
         xp: 0,
         created_at: new Date().toISOString()
@@ -88,6 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: email || '',
         avatar_url: metadata?.avatar_url || '',
         classe_viking: 'Recruta',
+        papel: 'Desenvolvedor',
         role: 'user',
         xp: 0
       };
@@ -153,6 +172,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
           id: user.id,
           nome: editingProfile.nome,
           classe_viking: editingProfile.classe_viking,
+          papel: editingProfile.papel,
           avatar_url: editingProfile.avatar_url,
           email: user.email,
           role: profile?.role || 'user',
@@ -240,7 +260,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
                 </div>
                 <div className="flex-1 min-w-0 relative z-10">
                   <p className="text-sm font-black truncate text-white">{profile?.nome || 'Guerreiro'}</p>
-                  <p className="text-[10px] text-viking-gold uppercase tracking-[0.2em] font-black">{profile?.classe_viking || 'Recruta'}</p>
+                  <p className="text-[10px] text-viking-gold uppercase tracking-[0.2em] font-black">{profile?.papel || 'Desenvolvedor'}</p>
                 </div>
                 <Settings size={14} className="text-viking-gold/40 group-hover:rotate-90 transition-transform" />
               </div>
@@ -320,7 +340,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-viking-stone border border-viking-gold/30 rounded-2xl p-8 w-full max-w-lg relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto no-scrollbar"
+              className="bg-viking-stone border border-viking-gold/30 rounded-2xl p-8 w-full max-w-lg relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto themed-scroll"
             >
               <div className="flex items-center gap-4 mb-8">
                 <div className="p-3 rounded-xl bg-viking-gold/20 text-viking-gold">
@@ -362,16 +382,28 @@ function AppLayout({ children }: { children: React.ReactNode }) {
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-[10px] uppercase font-black tracking-widest text-slate-500">Classe (Especialidade)</label>
-                    <input 
-                      required
-                      value={editingProfile.classe_viking || ''}
-                      onChange={e => setEditingProfile({...editingProfile, classe_viking: e.target.value})}
-                      type="text" 
-                      className="w-full bg-black/40 border border-white/10 rounded-xl p-4 focus:border-viking-gold outline-none transition-all font-bold"
-                      placeholder="Ex: Berserker Backend"
-                    />
+                  <div className="space-y-3">
+                    <label className="text-[10px] uppercase font-black tracking-widest text-slate-500">Papel no Fluxo</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {PAPEIS_DESENVOLVIMENTO.map(p => {
+                        const cfg = PAPEL_CONFIG[p];
+                        const isSelected = (editingProfile.papel || 'Desenvolvedor') === p;
+                        return (
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() => setEditingProfile({ ...editingProfile, papel: p as any })}
+                            className={`flex items-center gap-2.5 px-3 py-3 rounded-xl border font-bold text-xs transition-all duration-150 text-left ${isSelected ? cfg.selected : cfg.idle}`}
+                          >
+                            <cfg.icon size={15} className="shrink-0" />
+                            <span className="leading-none">{p}</span>
+                            {isSelected && (
+                              <span className="ml-auto w-1.5 h-1.5 rounded-full bg-current shrink-0" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   <div className="space-y-4">

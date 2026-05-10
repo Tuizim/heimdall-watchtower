@@ -41,8 +41,9 @@ export default function Battalion() {
     };
   };
 
-  const filteredWarriors = warriors.filter(w => 
+  const filteredWarriors = warriors.filter(w =>
     w.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (w.papel || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     w.classe_viking.toLowerCase().includes(searchTerm.toLowerCase())
   ).sort((a, b) => getWarriorStats(b.id).totalPoints - getWarriorStats(a.id).totalPoints);
 
@@ -134,7 +135,7 @@ export default function Battalion() {
                     </div>
                     
                     <div className="space-y-1">
-                      <span className="text-[10px] text-viking-blue font-black uppercase tracking-[0.3em]">{warrior.classe_viking}</span>
+                      <span className="text-[10px] text-viking-blue font-black uppercase tracking-[0.3em]">{warrior.papel || warrior.classe_viking}</span>
                       <h3 className="text-3xl font-black text-white italic tracking-tighter leading-tight uppercase group-hover:text-viking-gold transition-colors">{warrior.nome}</h3>
                     </div>
                   </div>
