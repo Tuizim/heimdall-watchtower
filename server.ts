@@ -31,7 +31,7 @@ async function startServer() {
             <p style="color: #718096; font-size: 14px;">As runas foram confirmadas. Fechando portal...</p>
             <script>
               if (window.opener) {
-                window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS' }, '*');
+                window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS' }, window.location.origin);
                 window.close();
               } else {
                 window.location.href = '/';

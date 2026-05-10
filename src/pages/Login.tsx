@@ -11,8 +11,7 @@ export default function Login() {
 
   React.useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      const origin = event.origin;
-      if (!origin.endsWith('.run.app') && !origin.includes('localhost')) return;
+      if (event.origin !== window.location.origin) return;
       if (event.data?.type === 'OAUTH_AUTH_SUCCESS') window.location.href = '/';
     };
 
