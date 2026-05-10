@@ -22,10 +22,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { addBusinessDays, format, parseISO, differenceInBusinessDays, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
-import DatePicker, { registerLocale } from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
-
-registerLocale('pt-BR', ptBR);
+import { DayPicker } from 'react-day-picker';
 
 const getStatusConfig = (status: StatusTarefa) => {
   switch (status) {
@@ -52,6 +49,7 @@ export default function Deliveries() {
   const [usingMocks, setUsingMocks] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isRagnarokModalOpen, setIsRagnarokModalOpen] = useState(false);
   const [ragnarokFeedback, setRagnarokFeedback] = useState<string | null>(null);
   const [newTask, setNewTask] = useState({
@@ -424,17 +422,53 @@ export default function Deliveries() {
 
                 <div className="space-y-2">
                   <label className="text-[10px] uppercase font-black tracking-widest text-slate-500">Calendário de Previsão (Horizonte)</label>
-                  <div className="viking-datepicker">
-                    <DatePicker
-                      selected={parseISO(newTask.data_prevista)}
-                      onChange={updateDaysFromDate}
-                      dateFormat="dd/MM/yyyy"
-                      locale="pt-BR"
-                      minDate={new Date()}
-                      className="w-full bg-black/40 border border-white/10 rounded-xl p-5 focus:border-viking-gold outline-none transition-all text-white cursor-pointer font-bold text-center tracking-widest"
-                      calendarClassName="viking-calendar-custom"
-                    />
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsCalendarOpen(v => !v)}
+                    className="w-full bg-black/40 border border-white/10 rounded-xl p-5 text-white cursor-pointer font-bold text-center tracking-widest hover:border-viking-gold/50 transition-all"
+                  >
+                    {format(parseISO(newTask.data_prevista), 'dd/MM/yyyy')}
+                  </button>
+                  <AnimatePresence>
+                    {isCalendarOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        className="bg-viking-deep border border-viking-gold/30 rounded-2xl p-4 shadow-2xl shadow-black/60"
+                      >
+                        <DayPicker
+                          mode="single"
+                          selected={parseISO(newTask.data_prevista)}
+                          onSelect={(date) => {
+                            if (date) {
+                              updateDaysFromDate(date);
+                              setIsCalendarOpen(false);
+                            }
+                          }}
+                          locale={ptBR}
+                          disabled={{ before: new Date() }}
+                          classNames={{
+                            month_caption: 'flex justify-center items-center py-2 mb-1',
+                            caption_label: 'text-[11px] font-black uppercase tracking-[0.2em] text-viking-gold',
+                            nav: 'flex items-center justify-between mb-2',
+                            button_previous: 'p-1.5 rounded-lg text-viking-gold hover:bg-viking-gold/20 transition-colors',
+                            button_next: 'p-1.5 rounded-lg text-viking-gold hover:bg-viking-gold/20 transition-colors',
+                            month_grid: 'w-full',
+                            weekdays: 'grid grid-cols-7 mb-1',
+                            weekday: 'flex items-center justify-center text-[9px] font-black uppercase tracking-widest text-viking-gold/50 py-2',
+                            week: 'grid grid-cols-7 gap-0',
+                            day: 'flex items-center justify-center p-0.5',
+                            day_button: 'w-9 h-9 flex items-center justify-center rounded-lg text-sm text-slate-300 hover:bg-viking-gold hover:text-black transition-all cursor-pointer font-medium',
+                            selected: 'bg-viking-gold! text-black! font-black!',
+                            today: 'border border-viking-gold/50 text-viking-gold font-bold',
+                            outside: 'opacity-25',
+                            disabled: 'opacity-20 cursor-not-allowed hover:bg-transparent hover:text-slate-300',
+                          }}
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 <div className="space-y-5">

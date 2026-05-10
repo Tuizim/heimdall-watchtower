@@ -125,13 +125,13 @@ export default function Dashboard() {
           <div className="absolute top-0 right-0 p-6 opacity-10">
              <Sword size={80} className="text-viking-blue" />
           </div>
-          <span className="text-[10px] uppercase font-black tracking-[0.3em] text-viking-blue mb-6 block">Sua Honra</span>
-          <div className="flex items-end gap-3 mb-6">
-             <span className="text-4xl font-black text-white leading-none uppercase tracking-tighter italic">{profile?.classe_viking || 'Recruta'}</span>
+          <span className="text-[10px] uppercase font-black tracking-[0.3em] text-viking-blue mb-6 block">Seu Papel</span>
+          <div className="mb-6 pr-16">
+             <span className="text-2xl font-black text-white leading-tight uppercase tracking-tight italic">{profile?.papel || 'Desenvolvedor'}</span>
           </div>
           <div className="flex items-center gap-2 text-viking-blue">
             <Star size={16} fill="currentColor" />
-            <span className="text-xs font-black uppercase tracking-widest">Guerreiro do Reino</span>
+            <span className="text-xs font-black uppercase tracking-widest truncate">{profile?.classe_viking || 'Guerreiro do Reino'}</span>
           </div>
         </motion.div>
       </section>

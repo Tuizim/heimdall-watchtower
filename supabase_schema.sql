@@ -7,10 +7,17 @@ CREATE TABLE profiles (
   email TEXT NOT NULL,
   avatar_url TEXT,
   classe_viking TEXT DEFAULT 'Thrall', -- Classes: Berserker Backend, Rune Keeper, Guardian QA, Seer Frontend, Blacksmith DevOps
+  papel TEXT DEFAULT 'Desenvolvedor', -- Papel no fluxo: Desenvolvedor, Líder Técnico, Agilista, QA, DevOps, Designer, Product Owner
   role TEXT DEFAULT 'user', -- 'admin' or 'user'
   xp INTEGER DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- Migration: adicionar coluna papel a tabelas existentes
+-- ALTER TABLE profiles ADD COLUMN IF NOT EXISTS papel TEXT DEFAULT 'Desenvolvedor';
+
+-- Migration: adicionar coluna login (username único para autenticação admin)
+-- ALTER TABLE profiles ADD COLUMN IF NOT EXISTS login TEXT UNIQUE;
 
 -- 2. Tasks (Missions) Table
 CREATE TABLE tasks (

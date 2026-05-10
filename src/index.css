@@ -98,69 +98,6 @@
   animation: flicker 0.15s infinite;
 }
 
-/* Custom styles for react-datepicker */
-.viking-datepicker .react-datepicker-wrapper {
-  @apply w-full;
-}
-
-.viking-calendar-custom {
-  background-color: #10141d !important;
-  border: 1px solid #b891494d !important;
-  border-radius: 0.75rem !important;
-  overflow: hidden !important;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
-  font-family: ui-sans-serif, system-ui, sans-serif !important;
-}
-
-.viking-calendar-custom .react-datepicker__header {
-  background-color: #05070a !important;
-  border-bottom: 1px solid #b8914933 !important;
-  padding-top: 1rem !important;
-}
-
-.viking-calendar-custom .react-datepicker__current-month,
-.viking-calendar-custom .react-datepicker__day-name {
-  color: #b89149 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.1em !important;
-  font-weight: 900 !important;
-  font-size: 10px !important;
-}
-
-.viking-calendar-custom .react-datepicker__day {
-  color: #cbd5e1 !important;
-  border-radius: 0.5rem !important;
-  transition: all 0.2s !important;
-}
-
-.viking-calendar-custom .react-datepicker__day:hover {
-  background-color: #b89149 !important;
-  color: #000 !important;
-}
-
-.viking-calendar-custom .react-datepicker__day--selected {
-  background-color: #b89149 !important;
-  color: #000 !important;
-  font-weight: 900 !important;
-}
-
-.viking-calendar-custom .react-datepicker__day--keyboard-selected {
-  background-color: rgba(184, 145, 73, 0.2) !important;
-  color: #b89149 !important;
-}
-
-.viking-calendar-custom .react-datepicker__day--disabled {
-  color: #334155 !important;
-  opacity: 0.5 !important;
-}
-
-.viking-calendar-custom .react-datepicker__navigation-icon::before {
-  border-color: #b89149 !important;
-}
-
-.viking-calendar-custom .react-datepicker__triangle {
-  display: none !important;
-}
 
 /* Hide number input spinners */
 input::-webkit-outer-spin-button,
@@ -178,7 +115,46 @@ input[type=number] {
   display: none;
 }
 .no-scrollbar {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Global custom scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(5, 7, 10, 0.6);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(184, 145, 73, 0.25);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(184, 145, 73, 0.55);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Modal scrollbar — mais fino e sutil */
+.themed-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.themed-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.themed-scroll::-webkit-scrollbar-thumb {
+  background: rgba(184, 145, 73, 0.2);
+  border-radius: 99px;
+}
+.themed-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(184, 145, 73, 0.5);
+}
+/* Firefox */
+.themed-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(184, 145, 73, 0.25) transparent;
 }
 

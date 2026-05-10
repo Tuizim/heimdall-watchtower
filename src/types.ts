@@ -1,11 +1,30 @@
-export type VikingClass = 
-  | 'Berserker Backend' 
-  | 'Rune Keeper' 
-  | 'Guardian QA' 
-  | 'Seer Frontend' 
+export type VikingClass =
+  | 'Berserker Backend'
+  | 'Rune Keeper'
+  | 'Guardian QA'
+  | 'Seer Frontend'
   | 'Blacksmith DevOps'
   | 'Recruta'
   | string;
+
+export type PapelDesenvolvimento =
+  | 'Desenvolvedor'
+  | 'Líder Técnico'
+  | 'Agilista'
+  | 'QA'
+  | 'DevOps'
+  | 'Designer'
+  | 'Product Owner';
+
+export const PAPEIS_DESENVOLVIMENTO: PapelDesenvolvimento[] = [
+  'Desenvolvedor',
+  'Líder Técnico',
+  'Agilista',
+  'QA',
+  'DevOps',
+  'Designer',
+  'Product Owner',
+];
 
 export type UserRole = 'admin' | 'user';
 
@@ -13,8 +32,10 @@ export interface Profile {
   id: string;
   nome: string;
   email: string;
+  login?: string;
   avatar_url?: string;
   classe_viking: VikingClass;
+  papel: PapelDesenvolvimento;
   role: UserRole;
   xp: number;
   created_at: string;
