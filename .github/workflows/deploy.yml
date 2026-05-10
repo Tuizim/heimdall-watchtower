@@ -28,20 +28,21 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
-      - name: Decode SSH Key
-        run: |
-          echo "DECODED_SSH_KEY<<EOF" >> $GITHUB_ENV
-          echo "${{ secrets.SSH_KEY }}" | base64 -d >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-
-      - name: Deploy para VPS via rsync
-        uses: burnett01/rsync-deployments@7.0.1
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
         with:
-          switches: -avzr --delete
-          path: dist/
-          remote_path: /var/www/watchtower/
-          remote_host: ${{ secrets.SSH_HOST }}
-          remote_port: ${{ secrets.SSH_PORT }}
-          remote_user: ${{ secrets.SSH_USER }}
-          remote_key: ${{ env.DECODED_SSH_KEY }}
-          remote_key_pass: ""
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: echo "SSH OK"
+
+      - name: Deploy via rsync
+        uses: appleboy/rsync-action@v0.0.2
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: dist/
+          target: /var/www/watchtower/
