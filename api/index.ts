@@ -8,6 +8,15 @@ import adminRouter from "./routes/admin.js";
 
 const api = Router();
 
+api.get("/health", async (_, res) => {
+  return res.status(200).json({
+    ok: true,
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
+});
+
+
 api.use("/auth", authRouter);
 api.use("/profiles", profilesRouter);
 api.use("/tasks", tasksRouter);
