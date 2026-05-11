@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Profile {
+  id            String   @id @default(uuid())
+  nome          String
+  email         String   @unique
+  login         String?  @unique
+  password_hash String?
+  avatar_url    String?
+  classe_viking String   @default("Recruta")
+  papel         String   @default("Desenvolvedor")
+  role          String   @default("user")
+  xp            Int      @default(0)
+  created_at    DateTime @default(now())
+
+  tasks          Task[]         @relation("TaskResponsavel")
+  branches       Branch[]       @relation("BranchResponsavel")
+  retro_cards    RetroCard[]    @relation("RetroResponsavel")
+  user_badges    UserBadge[]
+  refresh_tokens RefreshToken[]
+
+  @@map("profiles")
+}
+
+model RefreshToken {
+  id         String   @id @default(uuid())
+  user_id    String
+  token_hash String   @unique
+  expires_at DateTime
+  created_at DateTime @default(now())
+
+  user Profile @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model Task {
+  id             String    @id @default(uuid())
+  titulo         String
+  descricao      String?
+  pontos         Int       @default(1)
+  dias_estimados Int       @default(1)
+  data_prevista  DateTime?
+  status         String    @default("Verde")
+  responsavel_id String?
+  created_at     DateTime  @default(now())
+
+  responsavel Profile? @relation("TaskResponsavel", fields: [responsavel_id], references: [id], onDelete: SetNull)
+
+  @@map("tasks")
+}
+
+model Branch {
+  id             String   @id @default(uuid())
+  nome_branch    String
+  responsavel_id String?
+  ultimo_update  DateTime @default(now())
+  status         String   @default("Em progresso")
+  observacao     String?
+
+  responsavel Profile? @relation("BranchResponsavel", fields: [responsavel_id], references: [id], onDelete: SetNull)
+
+  @@map("branches")
+}
+
+model RetroCard {
+  id             String   @id @default(uuid())
+  titulo         String
+  descricao      String?
+  status         String   @default("Pendentes")
+  responsavel_id String?
+  created_at     DateTime @default(now())
+
+  responsavel Profile? @relation("RetroResponsavel", fields: [responsavel_id], references: [id], onDelete: SetNull)
+
+  @@map("retro_cards")
+}
+
+model Badge {
+  id        String @id @default(uuid())
+  nome      String
+  descricao String?
+  icone     String?
+
+  user_badges UserBadge[]
+
+  @@map("badges")
+}
+
+model UserBadge {
+  id        String   @id @default(uuid())
+  user_id   String
+  badge_id  String
+  earned_at DateTime @default(now())
+
+  user  Profile @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  badge Badge   @relation(fields: [badge_id], references: [id], onDelete: Cascade)
+
+  @@map("user_badges")
+}

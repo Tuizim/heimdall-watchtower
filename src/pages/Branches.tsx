@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { supabase } from '../lib/supabase';
-import { Branch, Profile } from '../types';
+import { branches as branchesApi, profiles as profilesApi } from '../lib/api';
+import { Profile } from '../types';
 import { AuthContext } from '../App';
 import {
   GitBranch,
@@ -18,21 +18,22 @@ import { motion, AnimatePresence } from 'motion/react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-const MOCK_BRANCHES: Branch[] = [
-  { id: '1', nome: 'feature/viking-tokens', status: 'em progresso', ultimo_update: new Date().toISOString() },
-  { id: '2', nome: 'fix/shield-overflow', status: 'em progresso', ultimo_update: new Date(Date.now() - 3600000).toISOString() },
-  { id: '3', nome: 'main', status: 'atualizada', ultimo_update: new Date(Date.now() - 86400000).toISOString() },
-  { id: '4', nome: 'experiment/helheim-cache', status: 'em progresso', ultimo_update: new Date(Date.now() - 604800000).toISOString() },
-];
+interface Branch {
+  id: string;
+  nome_branch: string;
+  responsavel_id?: string;
+  ultimo_update: string;
+  status: string;
+  observacao?: string;
+}
 
 export default function Branches() {
   const { profile } = useContext(AuthContext);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
-  const [usingMocks, setUsingMocks] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newBranch, setNewBranch] = useState({ nome: '', responsavel_id: '' });
+  const [newBranch, setNewBranch] = useState({ nome_branch: '', responsavel_id: '' });
 
   const [colaboradores, setColaboradores] = useState<Profile[]>([]);
   const [checkingBranch, setCheckingBranch] = useState<string | null>(null);
@@ -44,8 +45,8 @@ export default function Branches() {
 
   const fetchColaboradores = async () => {
     try {
-      const { data } = await supabase.from('profiles').select('*');
-      if (data) setColaboradores(data);
+      const data = await profilesApi.list();
+      setColaboradores(data as unknown as Profile[]);
     } catch (err) {
       console.error(err);
     }
@@ -62,17 +63,10 @@ export default function Branches() {
   const fetchBranches = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('branches')
-        .select('*')
-        .order('ultimo_update', { ascending: false });
-      if (error) throw error;
-      setBranches(data || []);
-      setUsingMocks(false);
+      const data = await branchesApi.list();
+      setBranches(data as unknown as Branch[]);
     } catch (err) {
       console.error('Erro ao buscar branches:', err);
-      setBranches(MOCK_BRANCHES);
-      setUsingMocks(true);
     } finally {
       setLoading(false);
     }
@@ -80,31 +74,14 @@ export default function Branches() {
 
   const handleCreateBranch = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (usingMocks) {
-      const mock: Branch = {
-        id: Math.random().toString(36).substr(2, 9),
-        nome: newBranch.nome,
-        responsavel_id: newBranch.responsavel_id,
-        status: 'em progresso',
-        ultimo_update: new Date().toISOString(),
-      };
-      setBranches([mock, ...branches]);
-      setIsModalOpen(false);
-      setNewBranch({ nome: '', responsavel_id: '' });
-      return;
-    }
-
     try {
-      const { error } = await supabase.from('branches').insert([{
-        nome: newBranch.nome,
-        responsavel_id: newBranch.responsavel_id || null,
-        ultimo_update: new Date().toISOString(),
+      await branchesApi.create({
+        nome_branch: newBranch.nome_branch,
+        responsavel_id: newBranch.responsavel_id || undefined,
         status: 'em progresso',
-      }]);
-      if (error) throw error;
+      });
       setIsModalOpen(false);
-      setNewBranch({ nome: '', responsavel_id: '' });
+      setNewBranch({ nome_branch: '', responsavel_id: '' });
       fetchBranches();
     } catch (err) {
       console.error('Erro ao criar branch:', err);
@@ -113,23 +90,8 @@ export default function Branches() {
 
   const handleCheckUpdate = async (id: string) => {
     setCheckingBranch(id);
-
-    if (usingMocks) {
-      setBranches(prev =>
-        prev.map(b =>
-          b.id === id ? { ...b, ultimo_update: new Date().toISOString(), status: 'atualizada' } : b
-        )
-      );
-      setCheckingBranch(null);
-      return;
-    }
-
     try {
-      const { error } = await supabase
-        .from('branches')
-        .update({ status: 'atualizada', ultimo_update: new Date().toISOString() })
-        .eq('id', id);
-      if (error) throw error;
+      await branchesApi.update(id, { status: 'atualizada' });
       fetchBranches();
     } catch (err) {
       console.error('Erro ao marcar atualização:', err);
@@ -139,13 +101,8 @@ export default function Branches() {
   };
 
   const handleDeleteBranch = async (id: string) => {
-    if (usingMocks) {
-      setBranches(branches.filter(b => b.id !== id));
-      return;
-    }
     try {
-      const { error } = await supabase.from('branches').delete().eq('id', id);
-      if (error) throw error;
+      await branchesApi.delete(id);
       fetchBranches();
     } catch (err) {
       console.error('Erro ao apagar branch:', err);
@@ -210,8 +167,8 @@ export default function Branches() {
                   <label className="text-[10px] uppercase font-black tracking-widest text-slate-500">Nome da Rota (Branch)</label>
                   <input
                     required
-                    value={newBranch.nome}
-                    onChange={e => setNewBranch({ ...newBranch, nome: e.target.value })}
+                    value={newBranch.nome_branch}
+                    onChange={e => setNewBranch({ ...newBranch, nome_branch: e.target.value })}
                     type="text"
                     className="w-full bg-black/40 border border-white/10 rounded-xl p-4 focus:border-viking-blue outline-none transition-all"
                     placeholder="Ex: feature/reforco-scudos"
@@ -228,7 +185,7 @@ export default function Branches() {
                         onClick={() => setNewBranch({ ...newBranch, responsavel_id: c.id })}
                         className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${newBranch.responsavel_id === c.id ? 'bg-viking-blue text-white border-viking-blue scale-105 shadow-lg shadow-viking-blue/20' : 'bg-white/5 border-white/10 text-slate-300 hover:border-viking-blue/50'}`}
                       >
-                        <div className="w-8 h-8 rounded-full border border-current overflow-hidden flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full border border-current overflow-hidden shrink-0">
                           <img src={c.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.nome}`} className="w-full h-full object-cover" />
                         </div>
                         <span className="text-[10px] font-black uppercase tracking-tighter truncate">{c.nome}</span>
@@ -298,7 +255,7 @@ export default function Branches() {
                         <div className="p-2 bg-slate-900 rounded border border-white/5 text-viking-blue">
                           <GitBranch size={14} />
                         </div>
-                        <span className="font-mono text-viking-blue font-bold group-hover:text-viking-gold transition-colors">{branch.nome}</span>
+                        <span className="font-mono text-viking-blue font-bold group-hover:text-viking-gold transition-colors">{branch.nome_branch}</span>
                       </div>
                     </td>
                     <td className="px-8 py-5">

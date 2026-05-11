@@ -1,35 +1,31 @@
-import React, { useState } from 'react';
-import { supabase } from '../lib/supabase';
+import React, { useState, useContext } from 'react';
+import { auth } from '../lib/api';
+import { AuthContext } from '../App';
 import { Lock, User } from 'lucide-react';
 import { motion } from 'motion/react';
+import { Profile } from '../types';
 
 export default function Login() {
+  const { setProfile } = useContext(AuthContext);
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  React.useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
-      if (event.data?.type === 'OAUTH_AUTH_SUCCESS') window.location.href = '/';
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    // If input has @, treat as email; otherwise resolve to heimdall.local username
-    const email = login.includes('@') ? login : `${login.trim().toLowerCase()}@heimdall.local`;
-
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) setError('Login ou senha incorretos.');
-    setLoading(false);
+    try {
+      const { user } = await auth.login(login.trim(), password);
+      setProfile(user as unknown as Profile);
+      window.location.href = '/';
+    } catch (err: any) {
+      setError(err.message ?? 'Login ou senha incorretos.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

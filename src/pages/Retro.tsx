@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { retro as retroApi } from '../lib/api';
 import { RetroCard } from '../types';
-import { 
+import {
   Scroll,
-  MessageSquare, 
+  MessageSquare,
   Trash2,
   Plus,
   X,
@@ -18,11 +18,7 @@ export default function Retro() {
   const [cards, setCards] = useState<RetroCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newCard, setNewCard] = useState({
-    titulo: '',
-    descricao: '',
-    status: 'Pendentes'
-  });
+  const [newCard, setNewCard] = useState({ titulo: '', descricao: '', status: 'Pendentes' });
 
   useEffect(() => {
     fetchCards();
@@ -31,13 +27,8 @@ export default function Retro() {
   const fetchCards = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('retro_cards')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      setCards(data || []);
+      const data = await retroApi.list();
+      setCards(data as unknown as RetroCard[]);
     } catch (err) {
       console.error("Erro ao buscar pergaminhos:", err);
     } finally {
@@ -48,9 +39,7 @@ export default function Retro() {
   const handleCreateCard = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const { error } = await supabase.from('retro_cards').insert([newCard]);
-      if (error) throw error;
-      
+      await retroApi.create(newCard);
       setIsModalOpen(false);
       setNewCard({ titulo: '', descricao: '', status: 'Pendentes' });
       fetchCards();
@@ -61,8 +50,7 @@ export default function Retro() {
 
   const handleDeleteCard = async (id: string) => {
     try {
-      const { error } = await supabase.from('retro_cards').delete().eq('id', id);
-      if (error) throw error;
+      await retroApi.delete(id);
       fetchCards();
     } catch (err) {
       console.error("Erro ao apagar pergaminho:", err);
@@ -85,7 +73,7 @@ export default function Retro() {
            </div>
         </div>
 
-        <button 
+        <button
           onClick={() => setIsModalOpen(true)}
           className="px-8 py-5 bg-viking-gold text-black font-black rounded-xl hover:scale-105 transition-all flex items-center gap-3 active:scale-95 shadow-xl shadow-viking-gold/20 text-xs uppercase tracking-widest"
         >
@@ -111,7 +99,7 @@ export default function Retro() {
                    <div className="w-10 h-10 bg-viking-blue/10 rounded-lg flex items-center justify-center text-viking-blue group-hover:scale-110 transition-transform">
                       <Bookmark size={20} />
                    </div>
-                   <button 
+                   <button
                      onClick={() => handleDeleteCard(card.id)}
                      className="p-2 text-slate-600 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
                    >
@@ -150,18 +138,17 @@ export default function Retro() {
         )}
       </div>
 
-      {/* Modal de Criação */}
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsModalOpen(false)}
               className="absolute inset-0 bg-black/90 backdrop-blur-md"
             />
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -174,7 +161,7 @@ export default function Retro() {
                    </div>
                    <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase">Novo Pergaminho</h2>
                 </div>
-                <button 
+                <button
                   onClick={() => setIsModalOpen(false)}
                   className="p-3 text-slate-500 hover:text-white transition-colors"
                 >
@@ -208,7 +195,7 @@ export default function Retro() {
                   />
                 </div>
 
-                <button 
+                <button
                   type="submit"
                   className="w-full py-5 bg-viking-blue text-white font-black rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-viking-blue/20 uppercase tracking-[0.2em] mt-4"
                 >

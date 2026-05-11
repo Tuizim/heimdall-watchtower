@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
-import { supabase } from './lib/supabase';
+import { auth, profiles as profilesApi, setAccessToken, onApiError, type Profile as ApiProfile } from './lib/api';
 import { Profile, PAPEIS_DESENVOLVIMENTO } from './types';
 import {
   LayoutDashboard,
@@ -49,7 +49,7 @@ export const PAPEL_CONFIG: Record<string, { icon: React.ComponentType<{ size?: n
 
 // --- AUTH CONTEXT & PROVIDER ---
 export const AuthContext = React.createContext<{
-  user: any;
+  user: ApiProfile | null;
   profile: Profile | null;
   loading: boolean;
   signOut: () => Promise<void>;
@@ -57,74 +57,29 @@ export const AuthContext = React.createContext<{
 }>({ user: null, profile: null, loading: true, signOut: async () => {}, setProfile: () => {} });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<ApiProfile | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id, session.user.email, session.user.user_metadata);
-      else setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id, session.user.email, session.user.user_metadata);
-      else {
-        setProfile(null);
-        setLoading(false);
+    // Try to restore session via refresh token (HttpOnly cookie)
+    auth.refresh().then(async (token) => {
+      if (token) {
+        const me = await auth.me();
+        if (me) {
+          setUser(me);
+          setProfile(me as unknown as Profile);
+        }
       }
+      setLoading(false);
     });
-
-    // Guest mode only in local development — never in production builds
-    if (import.meta.env.DEV) {
-      const config = (window as any).__SUPABASE_CONFIG__;
-      if (!config?.url || config.url.includes('missing-url')) {
-        console.log("Modo Visitante Ativado automaticamente (Sem chaves do Supabase)");
-        setProfile({
-          id: 'guest',
-          nome: 'Visitante Valhalla',
-          email: 'guest@valhalla.com',
-          classe_viking: 'Seer Frontend',
-          papel: 'Desenvolvedor',
-          role: 'user',
-          xp: 0,
-          created_at: new Date().toISOString()
-        });
-        setUser({ id: 'guest', email: 'guest@valhalla.com' });
-        setLoading(false);
-      }
-    }
-
-    return () => subscription.unsubscribe();
   }, []);
 
-  const fetchProfile = async (id: string, email?: string, metadata?: any) => {
-    const { data, error } = await supabase.from('profiles').select('*').eq('id', id).single();
-    
-    if (error && error.code === 'PGRST116') {
-      // Profile NOT FOUND - Create it!
-      const newProfile = {
-        id,
-        nome: metadata?.full_name || 'Novo Guerreiro',
-        email: email || '',
-        avatar_url: metadata?.avatar_url || '',
-        classe_viking: 'Recruta',
-        papel: 'Desenvolvedor',
-        role: 'user',
-        xp: 0
-      };
-      const { data: created } = await supabase.from('profiles').upsert([newProfile]).select().single();
-      if (created) setProfile(created);
-    } else if (data) {
-      setProfile(data);
-    }
-    setLoading(false);
-  };
-
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await auth.logout();
+    setUser(null);
+    setProfile(null);
+    setAccessToken(null);
   };
 
   return (
@@ -140,6 +95,14 @@ function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const { profile, user, signOut, setProfile } = React.useContext(AuthContext);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  useEffect(() => {
+    return onApiError((message) => {
+      setApiError(message);
+      setTimeout(() => setApiError(null), 5000);
+    });
+  }, []);
   const [editingProfile, setEditingProfile] = useState<Partial<Profile>>({});
   const [isUploading, setIsUploading] = useState(false);
   const [newPassword, setNewPassword] = useState('');
@@ -169,35 +132,17 @@ function AppLayout({ children }: { children: React.ReactNode }) {
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || user.id === 'guest') {
-      // Logic for guest (preview only, no real DB update)
-      setIsProfileModalOpen(false);
-      return;
-    }
+    if (!user) return;
 
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .upsert([{
-          id: user.id,
-          nome: editingProfile.nome,
-          classe_viking: editingProfile.classe_viking,
-          papel: editingProfile.papel,
-          avatar_url: editingProfile.avatar_url,
-          email: user.email,
-          role: profile?.role || 'user',
-          xp: profile?.xp || 0
-        }]);
+      const updated = await profilesApi.update(user.id, {
+        nome: editingProfile.nome,
+        classe_viking: editingProfile.classe_viking,
+        papel: editingProfile.papel,
+        avatar_url: editingProfile.avatar_url,
+      });
 
-      if (error) throw error;
-      
-      // Update local context state
-      const updatedProfile = {
-        ...profile,
-        ...editingProfile,
-      } as Profile;
-      
-      setProfile(updatedProfile);
+      setProfile({ ...profile, ...updated } as Profile);
       setIsProfileModalOpen(false);
     } catch (err) {
       console.error("Erro ao atualizar perfil:", err);
@@ -206,20 +151,19 @@ function AppLayout({ children }: { children: React.ReactNode }) {
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (user?.id === 'guest') return;
     setPasswordError(null);
     setPasswordSuccess(false);
 
     if (newPassword !== confirmPassword) { setPasswordError('As senhas não coincidem'); return; }
     if (newPassword.length < 12) { setPasswordError('Mínimo de 12 caracteres'); return; }
 
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) {
-      setPasswordError(error.message);
-    } else {
+    try {
+      await auth.changePassword('', newPassword); // currentPassword prompted separately if needed
       setPasswordSuccess(true);
       setNewPassword('');
       setConfirmPassword('');
+    } catch (err: any) {
+      setPasswordError(err.message ?? 'Erro ao trocar senha.');
     }
   };
 
@@ -528,6 +472,22 @@ function AppLayout({ children }: { children: React.ReactNode }) {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Toast de erro global da API */}
+      <AnimatePresence>
+        {apiError && (
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 40 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-200 flex items-center gap-3 px-5 py-3.5 bg-rose-950 border border-rose-500/40 text-rose-300 rounded-2xl shadow-2xl text-sm font-bold max-w-sm w-full mx-4"
+          >
+            <span className="text-rose-500 text-lg leading-none">!</span>
+            <span className="flex-1">{apiError}</span>
+            <button onClick={() => setApiError(null)} className="text-rose-500/60 hover:text-rose-300 transition-colors shrink-0">✕</button>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

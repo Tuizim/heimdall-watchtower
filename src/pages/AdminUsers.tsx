@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { UserPlus, X, Copy, Check, Eye, EyeOff, Shield, Users, Trash2, Shuffle, Camera, User as UserIcon, KeyRound } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { admin as adminApi } from '../lib/api';
 import { AuthContext, PAPEL_CONFIG } from '../App';
 import { Profile, PAPEIS_DESENVOLVIMENTO, PapelDesenvolvimento } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -15,7 +15,7 @@ const FORM_INITIAL = { nome: '', login: '', papel: 'Desenvolvedor' as PapelDesen
 
 function generatePassword() {
   const chars = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#&';
-  return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  return Array.from({ length: 14 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
 }
 
 export default function AdminUsers() {
@@ -39,8 +39,12 @@ export default function AdminUsers() {
   useEffect(() => { fetchUsers(); }, []);
 
   const fetchUsers = async () => {
-    const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
-    if (data) setUsers(data);
+    try {
+      const data = await adminApi.listUsers();
+      setUsers(data as unknown as Profile[]);
+    } catch (err) {
+      console.error("Erro ao carregar usuários:", err);
+    }
   };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -57,10 +61,12 @@ export default function AdminUsers() {
     setError(null);
 
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('create-user', { body: form });
-      if (fnError) throw new Error(fnError.message || 'Erro ao criar guerreiro');
-      if (data?.error) throw new Error(data.error);
-
+      await adminApi.createUser({
+        nome: form.nome,
+        login: form.login,
+        password: form.senha,
+        papel: form.papel,
+      });
       setCredentials({ nome: form.nome, login: form.login.trim().toLowerCase(), senha: form.senha });
       setForm(FORM_INITIAL);
       setShowForm(false);
@@ -74,9 +80,7 @@ export default function AdminUsers() {
   const handleDelete = async (userId: string) => {
     setDeleting(true);
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('delete-user', { body: { userId } });
-      if (fnError) throw new Error(fnError.message);
-      if (data?.error) throw new Error(data.error);
+      await adminApi.deleteUser(userId);
       setConfirmDelete(null);
       fetchUsers();
     } catch (err: any) {
@@ -97,11 +101,7 @@ export default function AdminUsers() {
     if (!resetUser) return;
     setResetting(true);
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('reset-user-password', {
-        body: { userId: resetUser.id, password: resetPassword },
-      });
-      if (fnError) throw new Error(fnError.message);
-      if (data?.error) throw new Error(data.error);
+      await adminApi.updateUser(resetUser.id, { password: resetPassword });
       setResetUser(null);
     } catch (err: any) {
       alert(err.message);
@@ -126,7 +126,6 @@ export default function AdminUsers() {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3 mb-1">
@@ -144,7 +143,6 @@ export default function AdminUsers() {
         </button>
       </div>
 
-      {/* Credentials Banner */}
       <AnimatePresence>
         {credentials && (
           <motion.div
@@ -186,7 +184,6 @@ export default function AdminUsers() {
         )}
       </AnimatePresence>
 
-      {/* Users List */}
       <div className="glass rounded-2xl border border-white/5 overflow-hidden">
         <div className="px-6 py-4 border-b border-white/5 flex items-center gap-3">
           <Users size={18} className="text-slate-400" />
@@ -218,7 +215,6 @@ export default function AdminUsers() {
                 {u.role === 'admin' ? 'Jarl' : 'Huskar'}
               </span>
 
-              {/* Reset password */}
               {u.role !== 'admin' && confirmDelete !== u.id && (
                 <button
                   onClick={() => openResetModal(u)}
@@ -229,7 +225,6 @@ export default function AdminUsers() {
                 </button>
               )}
 
-              {/* Delete */}
               {u.role !== 'admin' && (
                 confirmDelete === u.id ? (
                   <div className="flex items-center gap-2 shrink-0">
@@ -265,7 +260,7 @@ export default function AdminUsers() {
       {/* Reset Password Modal */}
       <AnimatePresence>
         {resetUser && (
-          <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -295,7 +290,7 @@ export default function AdminUsers() {
                   <div className="relative">
                     <input
                       required
-                      minLength={6}
+                      minLength={12}
                       type={showResetPassword ? 'text' : 'password'}
                       value={resetPassword}
                       onChange={e => setResetPassword(e.target.value)}
@@ -360,7 +355,7 @@ export default function AdminUsers() {
       {/* Create User Modal */}
       <AnimatePresence>
         {showForm && (
-          <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -385,7 +380,6 @@ export default function AdminUsers() {
               </div>
 
               <form onSubmit={handleCreate} className="space-y-4">
-                {/* Avatar */}
                 <div className="flex justify-center mb-2">
                   <div className="relative group cursor-pointer">
                     <input
@@ -442,12 +436,12 @@ export default function AdminUsers() {
                   <div className="relative">
                     <input
                       required
-                      minLength={6}
+                      minLength={12}
                       type={showPassword ? 'text' : 'password'}
                       value={form.senha}
                       onChange={e => setForm({ ...form, senha: e.target.value })}
                       className="w-full bg-black/40 border border-white/10 rounded-xl p-3.5 pr-20 focus:border-viking-gold outline-none transition-all font-mono"
-                      placeholder="mínimo 6 caracteres"
+                      placeholder="mínimo 12 caracteres"
                       autoComplete="new-password"
                     />
                     <div className="absolute right-2 top-2.5 flex gap-1">

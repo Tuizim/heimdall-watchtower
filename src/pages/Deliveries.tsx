@@ -1,21 +1,14 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { supabase } from '../lib/supabase';
+import { tasks as tasksApi, profiles as profilesApi } from '../lib/api';
 import { Task, StatusTarefa, Profile } from '../types';
 import { AuthContext } from '../App';
-import { 
-  Shield, 
-  Clock, 
-  AlertTriangle, 
-  Lock, 
-  Target, 
-  User as UserIcon,
+import {
+  Shield,
   Sword,
   Compass,
   Plus,
-  Minus,
   Trash2,
   Trophy,
-  History,
   X,
   Flame
 } from 'lucide-react';
@@ -46,7 +39,6 @@ export default function Deliveries() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [colaboradores, setColaboradores] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [usingMocks, setUsingMocks] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -69,17 +61,16 @@ export default function Deliveries() {
 
   const updateDaysFromDate = (date: Date | null) => {
     if (!date || !isValid(date)) return;
-    
     try {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const days = Math.max(1, differenceInBusinessDays(date, today));
-      setNewTask(prev => ({ 
-        ...prev, 
-        data_prevista: format(date, 'yyyy-MM-dd'), 
-        dias_estimados: days 
+      setNewTask(prev => ({
+        ...prev,
+        data_prevista: format(date, 'yyyy-MM-dd'),
+        dias_estimados: days
       }));
-    } catch (e) {
+    } catch {
       console.error("Data inválida");
     }
   };
@@ -91,37 +82,22 @@ export default function Deliveries() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const { data: tasksData, error: tasksError } = await supabase
-        .from('tasks')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      const { data: usersData, error: usersError } = await supabase
-        .from('profiles')
-        .select('*');
-
-      if (tasksError || usersError) throw tasksError || usersError;
-      
-      setTasks(tasksData || []);
-      setColaboradores(usersData || []);
-      setUsingMocks(false);
+      const [tasksData, usersData] = await Promise.all([
+        tasksApi.list(),
+        profilesApi.list(),
+      ]);
+      setTasks(tasksData as unknown as Task[]);
+      setColaboradores(usersData as unknown as Profile[]);
     } catch (err) {
-      console.error("Erro ao carregar dados, usando mocks:", err);
-      setUsingMocks(true);
+      console.error("Erro ao carregar dados:", err);
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteTask = async (id: string) => {
-    if (usingMocks) {
-      setTasks(tasks.filter(t => t.id !== id));
-      return;
-    }
-
     try {
-      const { error } = await supabase.from('tasks').delete().eq('id', id);
-      if (error) throw error;
+      await tasksApi.delete(id);
       fetchData();
     } catch (err) {
       console.error("Erro ao apagar missão:", err);
@@ -129,18 +105,8 @@ export default function Deliveries() {
   };
 
   const handleCompleteTask = async (id: string) => {
-    if (usingMocks) {
-      setTasks(tasks.map(t => t.id === id ? { ...t, status: 'concluída' as StatusTarefa } : t));
-      return;
-    }
-
     try {
-      const { error } = await supabase
-        .from('tasks')
-        .update({ status: 'concluída' })
-        .eq('id', id);
-
-      if (error) throw error;
+      await tasksApi.update(id, { status: 'concluída' });
       fetchData();
     } catch (err) {
       console.error("Erro ao completar missão:", err);
@@ -149,31 +115,29 @@ export default function Deliveries() {
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (usingMocks) {
-      const mockTask: Task = {
-        id: Math.random().toString(36).substr(2, 9),
-        ...newTask,
-        created_at: new Date().toISOString()
-      } as Task;
-      setTasks([mockTask, ...tasks]);
-      setIsModalOpen(false);
-      return;
-    }
-
     try {
-      const { error } = await supabase
-        .from('tasks')
-        .insert([{
-          ...newTask,
-          responsavel_id: newTask.responsavel_id || profile?.id
-        }]);
-
-      if (error) throw error;
+      await tasksApi.create({
+        ...newTask,
+        responsavel_id: newTask.responsavel_id || profile?.id,
+      });
       setIsModalOpen(false);
       fetchData();
     } catch (err) {
       console.error("Erro ao criar missão:", err);
+    }
+  };
+
+  const executeRagnarok = async () => {
+    setIsRagnarokModalOpen(false);
+    try {
+      await tasksApi.deleteAll();
+      setTasks([]);
+      setRagnarokFeedback("Valhalla foi limpo. O reino renasceu das cinzas.");
+    } catch (err) {
+      console.error("Erro catastrófico no Ragnarök:", err);
+      setRagnarokFeedback("Os deuses impediram o reset.");
+    } finally {
+      setTimeout(() => setRagnarokFeedback(null), 4000);
     }
   };
 
@@ -183,40 +147,6 @@ export default function Deliveries() {
     if (profile) uniqueProfiles.set(profile.id, profile);
     return Array.from(uniqueProfiles.values());
   }, [colaboradores, profile]);
-
-  const handleRagnarok = () => {
-    setIsRagnarokModalOpen(true);
-  };
-
-  const executeRagnarok = async () => {
-    setLoading(true);
-    setIsRagnarokModalOpen(false);
-    
-    try {
-      if (usingMocks) {
-        setTasks([]);
-        setRagnarokFeedback("O Ragnarök passou pelas terras simuladas.");
-        setTimeout(() => setRagnarokFeedback(null), 3000);
-        return;
-      }
-
-      const { error: tErr } = await supabase.from('tasks').delete().not('id', 'is', null);
-
-      if (tErr) {
-        console.error("Erro durante o Ragnarök:", tErr);
-        setRagnarokFeedback("Os deuses impediram o reset.");
-      } else {
-        setRagnarokFeedback("O painel renascerá...");
-        setTimeout(() => window.location.reload(), 1500);
-      }
-    } catch (err) {
-      console.error("Erro catastrófico no Ragnarök:", err);
-      setRagnarokFeedback("Um erro cataclísmico ocorreu.");
-    } finally {
-      setLoading(false);
-      setTimeout(() => setRagnarokFeedback(null), 3000);
-    }
-  };
 
   return (
     <div className="space-y-10 pb-20">
@@ -230,16 +160,18 @@ export default function Deliveries() {
         </div>
 
         <div className="flex items-center gap-4">
-          <button 
-            onClick={handleRagnarok}
-            className="flex-1 md:flex-none px-6 py-4 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-xl hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center gap-3 active:scale-95 group"
-            title="Ragnarök: Limpar Missões"
-          >
-            <Flame size={20} className="group-hover:animate-bounce" />
-            <span className="text-xs font-black uppercase tracking-widest">Ragnarök</span>
-          </button>
-          
-          <button 
+          {profile?.role === 'admin' && (
+            <button
+              onClick={() => setIsRagnarokModalOpen(true)}
+              className="flex-1 md:flex-none px-6 py-4 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-xl hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center gap-3 active:scale-95 group"
+              title="Ragnarök: Limpar Missões"
+            >
+              <Flame size={20} className="group-hover:animate-bounce" />
+              <span className="text-xs font-black uppercase tracking-widest">Ragnarök</span>
+            </button>
+          )}
+
+          <button
             onClick={() => setIsModalOpen(true)}
             className="flex-1 md:flex-none px-6 py-4 bg-viking-gold text-black font-black rounded-xl hover:scale-105 transition-all flex items-center justify-center gap-3 active:scale-95 shadow-lg shadow-viking-gold/30 text-xs uppercase tracking-wider"
           >
@@ -266,11 +198,11 @@ export default function Deliveries() {
                   className={`viking-card p-8 group relative overflow-hidden ${task.status === 'concluída' ? 'opacity-60 grayscale-[0.5]' : ''}`}
                 >
                   <div className="absolute top-0 left-0 w-1 h-full bg-viking-gold/30 group-hover:bg-viking-gold transition-colors" />
-                  
+
                   <div>
                     <div className="flex items-start justify-between mb-5">
                       <div className="flex gap-3">
-                        <button 
+                        <button
                           onClick={() => handleDeleteTask(task.id)}
                           className="p-3 rounded-xl bg-rose-500/10 text-rose-500 border border-rose-500/20 opacity-0 group-hover:opacity-100 transition-all hover:bg-rose-500 hover:text-white"
                           title="Apagar Missão"
@@ -278,7 +210,7 @@ export default function Deliveries() {
                           <Trash2 size={24} />
                         </button>
                         {task.status !== 'concluída' && (
-                          <button 
+                          <button
                             onClick={() => handleCompleteTask(task.id)}
                             className="p-3 rounded-xl bg-viking-gold/10 text-viking-gold border border-viking-gold/20 opacity-0 group-hover:opacity-100 transition-all hover:bg-viking-gold hover:text-black"
                             title="Marcar como Entregue"
@@ -302,15 +234,15 @@ export default function Deliveries() {
                       <div className="flex items-center gap-4">
                         <div className="relative group/avatar">
                           <div className="w-16 h-16 rounded-2xl border-2 border-viking-gold overflow-hidden bg-viking-stone ring-4 ring-black/20 shadow-xl transition-transform group-hover/avatar:scale-110">
-                            <img 
-                              src={responsavel?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${responsavel?.nome}`} 
-                              alt={responsavel?.nome} 
+                            <img
+                              src={responsavel?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${responsavel?.nome}`}
+                              alt={responsavel?.nome}
                               className="w-full h-full object-cover"
                             />
                           </div>
-                      <div className="absolute -bottom-1 -right-1 bg-viking-gold text-black rounded-md p-1 border border-black/20 shadow-lg">
-                        <Shield size={12} fill="currentColor" />
-                      </div>
+                          <div className="absolute -bottom-1 -right-1 bg-viking-gold text-black rounded-md p-1 border border-black/20 shadow-lg">
+                            <Shield size={12} fill="currentColor" />
+                          </div>
                         </div>
                         <div className="flex flex-col">
                           <span className="text-[10px] text-viking-gold uppercase font-black tracking-widest mb-0.5">Comandante</span>
@@ -344,14 +276,14 @@ export default function Deliveries() {
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsModalOpen(false)}
               className="absolute inset-0 bg-black/80 backdrop-blur-md"
             />
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
@@ -362,10 +294,7 @@ export default function Deliveries() {
                   <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase">Convocar Guerreiros</h2>
                   <p className="text-slate-400 text-sm mt-1 uppercase tracking-widest font-bold">Nova Missão para o Clã</p>
                 </div>
-                <button 
-                  onClick={() => setIsModalOpen(false)}
-                  className="p-3 text-slate-400 hover:text-white transition-colors"
-                >
+                <button onClick={() => setIsModalOpen(false)} className="p-3 text-slate-400 hover:text-white transition-colors">
                   <X size={24} />
                 </button>
               </div>
@@ -399,22 +328,22 @@ export default function Deliveries() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-3">
                     <label className="text-[10px] uppercase font-black tracking-widest text-slate-500">Pontos de Glória</label>
-                    <input 
+                    <input
                       required
                       value={newTask.pontos}
                       onChange={e => setNewTask({...newTask, pontos: Number(e.target.value)})}
-                      type="number" 
+                      type="number"
                       placeholder="0"
                       className="w-full bg-black/40 border border-white/10 rounded-xl p-4 focus:border-viking-gold outline-none transition-all text-center font-mono text-2xl font-black text-viking-gold"
                     />
                   </div>
                   <div className="space-y-3">
                     <label className="text-[10px] uppercase font-black tracking-widest text-slate-500">Dias de Jornada</label>
-                    <input 
+                    <input
                       required
                       value={newTask.dias_estimados}
                       onChange={e => updateCalculatedDate(Number(e.target.value))}
-                      type="number" 
+                      type="number"
                       min="1"
                       placeholder="1"
                       className="w-full bg-black/40 border border-white/10 rounded-xl p-4 focus:border-viking-blue outline-none transition-all text-center font-mono text-2xl font-black text-viking-blue"
@@ -497,7 +426,7 @@ export default function Deliveries() {
                   </div>
                 </div>
 
-                <button 
+                <button
                   type="submit"
                   className="w-full py-5 bg-viking-gold text-black font-black rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-viking-gold/20 uppercase tracking-[0.2em] mt-4"
                 >
@@ -508,7 +437,7 @@ export default function Deliveries() {
           </div>
         )}
       </AnimatePresence>
-      {/* Notificação de Feedback */}
+
       <AnimatePresence>
         {ragnarokFeedback && (
           <motion.div
@@ -522,42 +451,38 @@ export default function Deliveries() {
         )}
       </AnimatePresence>
 
-      {/* Modal de Ragnarök (Confirmação) */}
       <AnimatePresence>
         {isRagnarokModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsRagnarokModalOpen(false)}
               className="absolute inset-0 bg-rose-950/80 backdrop-blur-xl"
             />
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               className="relative w-full max-w-md bg-viking-stone border-2 border-rose-500/30 rounded-3xl p-10 shadow-[0_0_50px_rgba(244,63,94,0.2)] text-center overflow-hidden"
             >
-              <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-rose-500 to-transparent" />
-              
+              <div className="absolute top-0 inset-x-0 h-1 bg-linear-to-r from-transparent via-rose-500 to-transparent" />
               <div className="bg-rose-500/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 text-rose-500 border border-rose-500/20">
                 <Flame size={40} className="animate-pulse" />
               </div>
-
               <h3 className="text-2xl font-black text-rose-500 uppercase tracking-tighter mb-4 italic">O Fim dos Tempos?</h3>
               <p className="text-slate-400 text-sm font-medium leading-relaxed mb-8">
-                O Ragnarök apagará <span className="text-white font-black">TODAS</span> as missões do painel de entregas. Esta ação é irreversível e o painel renascerá das cinzas.
+                O Ragnarök apagará <span className="text-white font-black">TODAS</span> as missões do painel de entregas. Esta ação é irreversível.
               </p>
-
               <div className="flex flex-col gap-3">
-                <button 
+                <button
                   onClick={executeRagnarok}
                   className="w-full py-4 bg-rose-500 text-white font-black rounded-xl hover:bg-rose-600 transition-all uppercase tracking-widest shadow-lg shadow-rose-500/20"
                 >
                   Sim, Iniciar o Ragnarök
                 </button>
-                <button 
+                <button
                   onClick={() => setIsRagnarokModalOpen(false)}
                   className="w-full py-4 bg-transparent text-slate-500 font-bold rounded-xl hover:text-white transition-all uppercase tracking-widest text-xs"
                 >

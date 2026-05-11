@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { tasks as tasksApi, profiles as profilesApi } from '../lib/api';
 import { Profile, Task } from '../types';
 import { motion } from 'motion/react';
 import { Users, Shield, Target, Award, Sword, Search } from 'lucide-react';
@@ -17,11 +17,12 @@ export default function Battalion() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const { data: profilesData } = await supabase.from('profiles').select('*');
-      const { data: tasksData } = await supabase.from('tasks').select('*');
-      
-      setWarriors(profilesData || []);
-      setTasks(tasksData || []);
+      const [profilesData, tasksData] = await Promise.all([
+        profilesApi.list(),
+        tasksApi.list(),
+      ]);
+      setWarriors(profilesData as unknown as Profile[]);
+      setTasks(tasksData as unknown as Task[]);
     } catch (err) {
       console.error("Erro ao carregar o batalhão:", err);
     } finally {
@@ -33,7 +34,7 @@ export default function Battalion() {
     const completedTasks = tasks.filter(t => t.responsavel_id === warriorId && t.status === 'concluída');
     const totalPoints = completedTasks.reduce((acc, t) => acc + t.pontos, 0);
     const activeTasks = tasks.filter(t => t.responsavel_id === warriorId && t.status !== 'concluída').length;
-    
+
     return {
       totalPoints,
       completedMissions: completedTasks.length,
@@ -60,7 +61,7 @@ export default function Battalion() {
 
         <div className="relative w-full md:w-96">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
-          <input 
+          <input
             type="text"
             placeholder="Buscar guerreiro ou classe..."
             value={searchTerm}
@@ -80,8 +81,7 @@ export default function Battalion() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredWarriors.map((warrior, index) => {
             const stats = getWarriorStats(warrior.id);
-            const isTopThree = index < 3;
-            
+
             return (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -167,7 +167,7 @@ export default function Battalion() {
           })}
         </div>
       )}
-      
+
       {filteredWarriors.length === 0 && !loading && (
         <div className="flex flex-col items-center justify-center py-40 viking-card border-dashed">
           <Shield className="text-slate-700 mb-6 animate-pulse" size={48} />

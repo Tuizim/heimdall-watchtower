@@ -11,10 +11,10 @@ coverage/
 # Secrets — never commit these
 .env*
 !.env.example
+!.env.production.example
 
-# Supabase local dev
-supabase/.temp/
-supabase/.branches/
+# Prisma generated client (regenerated via npm run db:generate)
+node_modules/.prisma/
 
 # OS
 .DS_Store

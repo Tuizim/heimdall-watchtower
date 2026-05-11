@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { supabase } from '../lib/supabase';
+import { tasks as tasksApi, retro as retroApi, profiles as profilesApi } from '../lib/api';
 import { Profile, Task } from '../types';
 import { AuthContext } from '../App';
-import { 
-  Shield, 
+import {
+  Shield,
   Trophy,
   Flame,
   Sword,
@@ -30,7 +30,6 @@ export default function Dashboard() {
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [warriors, setWarriors] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [pointGoal] = useState(150);
 
   useEffect(() => {
     fetchData();
@@ -39,13 +38,14 @@ export default function Dashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const { data: tasksData } = await supabase.from('tasks').select('*');
-      const { data: retroData } = await supabase.from('retro_cards').select('*').order('created_at', { ascending: false }).limit(4);
-      const { data: profilesData } = await supabase.from('profiles').select('*').limit(6);
-      
-      setTasks(tasksData || []);
-      setReminders(retroData || []);
-      setWarriors(profilesData || []);
+      const [tasksData, retroData, profilesData] = await Promise.all([
+        tasksApi.list(),
+        retroApi.list(),
+        profilesApi.list(),
+      ]);
+      setTasks(tasksData as unknown as Task[]);
+      setReminders(retroData.slice(0, 4) as unknown as Reminder[]);
+      setWarriors(profilesData.slice(0, 6) as unknown as Profile[]);
     } catch (err) {
       console.error("Erro ao carregar dashboard:", err);
     } finally {
@@ -59,11 +59,6 @@ export default function Dashboard() {
       .reduce((acc, t) => acc + (t.pontos || 0), 0);
   }, [tasks]);
 
-  const clanXp = React.useMemo(() => {
-    return tasks.filter(t => t.status === 'concluída').length * 50;
-  }, [tasks]);
-
-  const progressPercentage = Math.min(100, Math.round((completedPoints / pointGoal) * 100));
 
   return (
     <div className="space-y-12 pb-20">
@@ -81,7 +76,7 @@ export default function Dashboard() {
 
       {/* Grid de Stats */}
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="viking-card p-8 group relative overflow-hidden"
@@ -96,7 +91,7 @@ export default function Dashboard() {
           <p className="mt-4 text-[10px] text-viking-text-dim font-bold uppercase tracking-widest">PONTOS DE GLÓRIA TOTAIS</p>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
@@ -116,7 +111,7 @@ export default function Dashboard() {
           </div>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
@@ -150,11 +145,11 @@ export default function Dashboard() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {reminders.length > 0 ? reminders.map((item, idx) => (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: idx * 0.1 }}
-                key={item.id} 
+                key={item.id}
                 className="viking-card p-6 border-l-2 border-l-viking-blue/40 bg-viking-stone/40 backdrop-blur-sm group hover:border-l-viking-gold transition-all"
               >
                 <div className="flex items-start justify-between mb-3">
@@ -183,17 +178,17 @@ export default function Dashboard() {
                </h3>
                <a href="/battalion" className="text-[10px] font-black uppercase tracking-widest text-viking-blue border-b border-viking-blue/20 pb-1 hover:border-viking-blue transition-all font-bold">Ver Alistamento</a>
             </div>
-            
+
             <div className="viking-card p-6 bg-viking-blue/5 border-viking-blue/20">
                <p className="text-xs text-slate-400 uppercase font-black tracking-widest mb-6">Em destaque no Salão:</p>
                <div className="flex flex-wrap gap-4">
                  <div className="flex -space-x-4 overflow-hidden p-2">
                     {warriors.map((warrior) => (
                       <div key={warrior.id} className="inline-block h-16 w-16 rounded-2xl ring-4 ring-viking-stone overflow-hidden border-2 border-viking-blue bg-viking-stone shadow-xl">
-                        <img 
-                          className="h-full w-full object-cover" 
-                          src={warrior.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${warrior.nome}`} 
-                          alt={warrior.nome} 
+                        <img
+                          className="h-full w-full object-cover"
+                          src={warrior.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${warrior.nome}`}
+                          alt={warrior.nome}
                           title={warrior.nome}
                         />
                       </div>
