@@ -94,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 function AppLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const location = useLocation();
-  const { profile, user, signOut, setProfile } = React.useContext(AuthContext);
+  const { profile, signOut, setProfile } = React.useContext(AuthContext);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
@@ -106,6 +106,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
   }, []);
   const [editingProfile, setEditingProfile] = useState<Partial<Profile>>({});
   const [isUploading, setIsUploading] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -133,10 +134,10 @@ function AppLayout({ children }: { children: React.ReactNode }) {
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!profile) return;
 
     try {
-      const updated = await profilesApi.update(user.id, {
+      const updated = await profilesApi.update(profile.id, {
         nome: editingProfile.nome,
         classe_viking: editingProfile.classe_viking,
         papel: editingProfile.papel,
@@ -155,12 +156,14 @@ function AppLayout({ children }: { children: React.ReactNode }) {
     setPasswordError(null);
     setPasswordSuccess(false);
 
+    if (!currentPassword) { setPasswordError('Informe a senha atual'); return; }
     if (newPassword !== confirmPassword) { setPasswordError('As senhas não coincidem'); return; }
     if (newPassword.length < 12) { setPasswordError('Mínimo de 12 caracteres'); return; }
 
     try {
-      await auth.changePassword('', newPassword); // currentPassword prompted separately if needed
+      await auth.changePassword(currentPassword, newPassword);
       setPasswordSuccess(true);
+      setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (err: any) {
@@ -437,12 +440,19 @@ function AppLayout({ children }: { children: React.ReactNode }) {
                   Trocar Senha
                 </h4>
                 <form onSubmit={handleChangePassword} className="space-y-3">
+                  <input
+                    type="password"
+                    value={currentPassword}
+                    onChange={e => setCurrentPassword(e.target.value)}
+                    placeholder="Senha atual"
+                    className="w-full bg-black/40 border border-white/10 rounded-xl p-3.5 focus:border-viking-blue outline-none transition-all text-sm"
+                  />
                   <div className="relative">
                     <input
                       type={showNewPassword ? 'text' : 'password'}
                       value={newPassword}
                       onChange={e => setNewPassword(e.target.value)}
-                      placeholder="Nova senha (mín. 6 caracteres)"
+                      placeholder="Nova senha (mín. 12 caracteres)"
                       className="w-full bg-black/40 border border-white/10 rounded-xl p-3.5 pr-12 focus:border-viking-blue outline-none transition-all text-sm"
                     />
                     <button
@@ -511,7 +521,7 @@ export default function App() {
 }
 
 function AuthConsumer() {
-  const { user, loading } = React.useContext(AuthContext);
+  const { profile, loading } = React.useContext(AuthContext);
 
   if (loading) {
     return (
@@ -526,9 +536,9 @@ function AuthConsumer() {
 
   return (
     <Routes>
-      <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
+      <Route path="/login" element={!profile ? <Login /> : <Navigate to="/" />} />
       <Route path="/*" element={
-        user ? (
+        profile ? (
           <AppLayout>
             <Routes>
               <Route path="/" element={<Dashboard />} />
