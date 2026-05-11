@@ -113,3 +113,12 @@ startServer().catch((err) => {
   console.error("Critical Failure in Watchtower:", err);
   process.exit(1);
 });
+
+
+process.on("uncaughtException", (err) => {
+  console.error("UNCAUGHT EXCEPTION:", err);
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("UNHANDLED REJECTION:", reason);
+});
