@@ -128,6 +128,8 @@ function AppLayout({ children }: { children: React.ReactNode }) {
     try {
       const compressed = await compressImage(file);
       setEditingProfile(prev => ({ ...prev, avatar_url: compressed }));
+    } catch {
+      setApiError('Erro ao processar imagem. Tente outro arquivo.');
     } finally {
       setIsUploading(false);
     }
