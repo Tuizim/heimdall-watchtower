@@ -33,7 +33,7 @@ router.get("/users", async (_req: Request, res: Response) => {
 
 // POST /api/admin/users  — create a user with username/password
 router.post("/users", async (req: Request, res: Response) => {
-  const { nome, login, password, email, papel, classe_viking, role } = req.body;
+  const { nome, login, password, email, papel, classe_viking, role, avatar_url } = req.body;
 
   if (!nome || !login || !password) {
     res.status(400).json({ error: "Nome, login e senha são obrigatórios." });
@@ -64,6 +64,7 @@ router.post("/users", async (req: Request, res: Response) => {
       papel: papel ?? "Desenvolvedor",
       classe_viking: classe_viking ?? "Recruta",
       role: role === "admin" ? "admin" : "user",
+      ...(avatar_url ? { avatar_url } : {}),
     },
     select: PUBLIC_FIELDS,
   });

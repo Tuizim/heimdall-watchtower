@@ -243,4 +243,5 @@ export interface CreateUserInput {
   classe_viking?: string;
   role?: "admin" | "user";
   xp?: number;
+  avatar_url?: string;
 }

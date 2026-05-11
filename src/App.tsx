@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import { auth, profiles as profilesApi, setAccessToken, onApiError, type Profile as ApiProfile } from './lib/api';
+import { compressImage } from './lib/compressImage';
 import { Profile, PAPEIS_DESENVOLVIMENTO } from './types';
 import {
   LayoutDashboard,
@@ -119,17 +120,17 @@ function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [profile]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setIsUploading(true);
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setEditingProfile(prev => ({ ...prev, avatar_url: reader.result as string }));
+    try {
+      const compressed = await compressImage(file);
+      setEditingProfile(prev => ({ ...prev, avatar_url: compressed }));
+    } finally {
       setIsUploading(false);
-    };
-    reader.readAsDataURL(file);
+    }
   };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {

@@ -6,6 +6,7 @@ import { Eye, EyeOff, Shuffle, Camera, User as UserIcon } from 'lucide-react';
 import { PAPEIS_DESENVOLVIMENTO, type PapelDesenvolvimento } from '../../types';
 import { PAPEL_CONFIG } from '../../App';
 import { useCreateAdminUser } from '../../hooks/useAdminUsers';
+import { compressImage } from '../../lib/compressImage';
 import { Modal, ModalHeader, FormField } from '../index';
 import type { CreatedCredentials } from './CredentialsBanner';
 
@@ -46,21 +47,18 @@ export function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalP
 
   const selectedPapel = form.watch('papel');
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: { target: HTMLInputElement }) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = reader.result as string;
-      setAvatarPreview(result);
-      form.setValue('avatar_url', result);
-    };
-    reader.readAsDataURL(file);
+    const compressed = await compressImage(file);
+    setAvatarPreview(compressed);
+    form.setValue('avatar_url', compressed);
   };
 
   const onSubmit = async (data: CreateUserFormData) => {
     const result = await createUser.mutateAsync({
       nome: data.nome, login: data.login, password: data.senha, papel: data.papel,
+      ...(data.avatar_url ? { avatar_url: data.avatar_url } : {}),
     });
     onSuccess({ nome: result.nome, login: data.login.trim().toLowerCase(), senha: data.senha });
     form.reset({ nome: '', login: '', senha: generatePassword(), papel: 'Desenvolvedor', avatar_url: '' });
