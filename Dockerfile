@@ -4,8 +4,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
-ARG DATABASE_URL=postgresql://build:build@localhost:5432/build
-RUN npx prisma generate
+RUN DATABASE_URL="postgresql://build:build@localhost:5432/build" npx prisma generate
 EXPOSE 3000
 CMD ["npm", "run", "dev"]
 
@@ -15,8 +14,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
-ARG DATABASE_URL=postgresql://build:build@localhost:5432/build
-RUN npx prisma generate
+RUN DATABASE_URL="postgresql://build:build@localhost:5432/build" npx prisma generate
 RUN npm run build
 
 # ─── Production stage ─────────────────────────────────────────────────────────
