@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import { auth, profiles as profilesApi, setAccessToken, onApiError, type Profile as ApiProfile } from './lib/api';
 import { Profile, PAPEIS_DESENVOLVIMENTO } from './types';
@@ -494,14 +495,18 @@ function AppLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
+const queryClient = new QueryClient();
+
 // --- MAIN APP ---
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <AuthConsumer />
-      </BrowserRouter>
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <BrowserRouter>
+          <AuthConsumer />
+        </BrowserRouter>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
 
