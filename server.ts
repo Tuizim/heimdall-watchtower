@@ -33,7 +33,7 @@ async function startServer() {
     })
   );
 
-  app.use(express.json({ limit: "50kb" }));
+  app.use(express.json({ limit: "5mb" }));
   app.use(cookieParser());
 
   // Rate limiting — only active in production
