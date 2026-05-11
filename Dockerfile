@@ -38,5 +38,8 @@ COPY --from=builder /app/prisma ./prisma
 
 RUN npm install tsx --save-dev
 
+COPY entrypoint.sh ./entrypoint.sh
+RUN chmod +x entrypoint.sh
+
 EXPOSE 3000
-CMD ["npx", "tsx", "server.ts"]
+ENTRYPOINT ["./entrypoint.sh"]
